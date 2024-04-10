@@ -12,7 +12,7 @@ exceptiongroup==1.2.0
 executing==2.0.1
 fonttools==4.48.1
 ipykernel==6.29.2
-ipython==8.21.0
+ipython==8.18.1
 jax-metal==0.0.5
 jaxtyping==0.2.25
 jedi==0.19.1
