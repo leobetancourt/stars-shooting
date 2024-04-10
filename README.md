@@ -3,3 +3,9 @@
 Python code that solves the equations of stellar structure using the shooting method.
 
 See `star_test.ipynb` for examples.
+
+Install dependencies with:
+
+```
+pip install -r requirements.txt
+```
