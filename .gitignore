@@ -1,6 +1,3 @@
 __pycache__/
-bin/
-include/
-lib/
-old/
-share/
+.DS_Store
+venv/
