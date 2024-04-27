@@ -3,6 +3,7 @@ import math
 import numpy as np
 from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
+import csv
 
 from opal import Opal
 
@@ -21,7 +22,8 @@ class Star:
         # set initial parameters
         self.m_c, self.m_s = 1e-6, (2e33)*M
         self.r_c, self.r_s = 1e-6, 7e10*(M**0.8)
-        self.P_c, self.P_s = 2.5e17, self.P_photo(self.m_s, self.r_s, self.kappa_thomson)
+        self.P_c, self.P_s = 2.5e17, self.P_photo(
+            self.m_s, self.r_s, self.kappa_thomson)
         self.L_c, self.L_s = 1e-6, 4e33
         self.T_c, self.T_s = 1.5e7, self.T_eff(self.L_s, self.r_s)
         if M > 5:
@@ -75,7 +77,7 @@ class Star:
         P, r, T, L = Y
         _rho = self.rho(P, T)
 
-        kappa = self.kappa_thomson # self.opal.get_opacity(_rho, T)
+        kappa = self.kappa_thomson  # self.opal.get_opacity(_rho, T)
 
         dP = - (const.G * m) / (4 * np.pi * r ** 4)
         dr = 1 / (4 * np.pi * (r ** 2) * _rho)
@@ -147,7 +149,7 @@ class Star:
             # update photospheric boundary conditions
             kappa = self.opal.get_opacity(
                 self.rho(self.P_s, self.T_s), self.T_s)
-            
+
             if math.isnan(kappa):
                 kappa = self.kappa_thomson
 
@@ -161,7 +163,28 @@ class Star:
 
         return E
 
-    """ plotting """
+    """ plotting and tables """
+
+    def save_csv(self, res=100):
+        mass = np.linspace(self.m_c, self.m_s, res)
+        Y = []
+
+        with open(f"./tables/{res}.csv", "w", newline="") as file:
+            writer = csv.writer(file)
+            writer.writerow(["m", "r", "P", "T", "L", "density"])
+            
+            for m in mass:
+                Y_m = np.zeros(4)
+                if m <= (self.m_fit * self.m_s):  # in outward zone
+                    Y_m = solve_ivp(self.stellar_structure, (self.m_c, (self.m_s) * self.m_fit),
+                                    (self.P_c, self.r_c, self.T_c, self.L_c), t_eval=[m]).y[:, 0]
+                else:  # in inward zone
+                    Y_m = solve_ivp(self.stellar_structure, (self.m_s, (self.m_s) * self.m_fit),
+                                    (self.P_s, self.r_s, self.T_s, self.L_s), t_eval=[m]).y[:, 0]
+                  
+                P, r, T, L = Y_m
+                rho = self.rho(P, T)
+                writer.writerow([m, r, P, T, L, rho])
 
     def plot(self, radius=False):
         y_labels = np.array([f"$P$", f"$r$", f"$T$", f"$L$"])
@@ -212,9 +235,11 @@ class Star:
         eps_pp_i = self.epsilon_pp(rho_i, Y_i[2])
         logT_o = np.log10(Y_o[2])
         logT_i = np.log10(Y_i[2])
-        plt.scatter(logT_o, np.log10(eps_cno_o), s=0.1, color="b", label=r"$\epsilon_{CNO}$")
+        plt.scatter(logT_o, np.log10(eps_cno_o), s=0.1,
+                    color="b", label=r"$\epsilon_{CNO}$")
         plt.scatter(logT_i, np.log10(eps_cno_i), s=0.1, color="b")
-        plt.scatter(logT_o, np.log10(eps_pp_o), s=0.1, color="orange", label=r"$\epsilon_{pp}$")
+        plt.scatter(logT_o, np.log10(eps_pp_o), s=0.1,
+                    color="orange", label=r"$\epsilon_{pp}$")
         plt.scatter(logT_i, np.log10(eps_pp_i), s=0.1, color="orange")
         plt.xlabel(r"log $T$")
         plt.ylabel(r"log $\epsilon$")
